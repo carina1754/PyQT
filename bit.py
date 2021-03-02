@@ -21,10 +21,10 @@ class MyWindow(QMainWindow):
 
         label = QLabel("ARK", self)
         label.move(20, 20)
-        
+
         label = QLabel("이율", self)
         label.move(20, 40)
-        
+
         self.price = QLabel("", self)
         self.price.move(80, 25)
         self.price.resize(100, 20)
@@ -32,11 +32,11 @@ class MyWindow(QMainWindow):
         self.price2 = QLabel("", self)
         self.price2.move(80, 45)
         self.price2.resize(100, 20)
-        
+
         self.th = Worker()
         self.th.recv.connect(self.receive_msg)
         self.th.start()
-    
+
     @pyqtSlot(dict)
     def receive_msg(self, data):
         print(data)
