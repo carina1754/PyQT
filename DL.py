@@ -1,75 +1,83 @@
+import os
 import pandas as pd
 import numpy as np
-import os
-import glob
-import random
+from time import time
+import tensorflow as tf
+from keras.models import Sequential
+from keras.layers import Dense, LSTM
+import matplotlib.pyplot as plt
 import math
-import warnings
-warnings.filterwarnings("ignore")
+from sklearn.model_selection import train_test_split
+from keras.callbacks import EarlyStopping
+from sklearn.preprocessing import StandardScaler
+import random
+import matplotlib.pyplot as plt
+from tqdm import tqdm
+from glob import glob
+import keras as K
+def make_dataset(data, label, window_size=20):
+    feature_list = []
+    label_list = []
+    for i in range(len(data) - window_size):
+        feature_list.append(np.array(data.iloc[i:i+window_size]))
+        label_list.append(np.array(label.iloc[i+window_size]))
+    return np.array(feature_list), np.array(label_list)
 
-train = pd.read_csv('./data/train/train.csv')
-submission = pd.read_csv('./data/sample_submission.csv')
+scaler = StandardScaler()
 
-for i in range(81):
-    file_path = './data/test/' + str(i) + '.csv'
-    temp = pd.read_csv(file_path)
-    temp = preprocess_data(temp, is_train=False).iloc[-48:]
-    test.append(temp)
+early_stopping = EarlyStopping()
 
-X_test = pd.concat(test)
+start = time()
+
+train = pd.read_csv('data.csv')
 
 from sklearn.model_selection import train_test_split
-x_train_1, x_test_1, y_train_1, y_test_1 = train_test_split(df_train.iloc[:, :-2], df_train.iloc[:, -2], test_size=0.2, random_state=0)
-x_test_1,x_valid_1,y_test_1,y_valid_1 = train_test_split(x_test_1, y_test_1, test_size=0.2, random_state=0)
+train,test = train_test_split(train, test_size=0.3, random_state=0)
 
-x_train_2, x_test_2, y_train_2, y_test_2 = train_test_split(df_train.iloc[:, :-2], df_train.iloc[:, -1], test_size=0.2, random_state=0)
-x_test_2,x_valid_2,y_test_2,y_valid_2 = train_test_split(x_test_2, y_test_2, test_size=0.2, random_state=0)
+train_feature = train[['id','open','high','low','tradevol','traceprice']]
+train_label = train[['trade']]
 
-from tensorflow.keras.backend import mean, maximum
+train_feature, train_label = make_dataset(train_feature, train_label, 20)
 
-def quantile_loss(q, y, pred):
-  err = (y-pred)
-  return mean(maximum(q*err, (q-1)*err), axis=-1)
+x_train, x_valid, y_train, y_valid = train_test_split(train_feature, train_label, test_size=0.2)
 
-# 2. 모델 구성
+test_feature = test[['id','open','high','low','tradevol','traceprice']]
+test_label = test[['trade']]
+
+test_feature, test_label = make_dataset(test_feature, test_label, 20)
+
+print(x_train.shape)
+print(y_train.shape)
+print(x_valid.shape)
+print(y_valid.shape)
+#sgd = tf.keras.optimizers.SGD(lr=0.05, decay=1e-6, momentum=0.9, nesterov=True)
 from keras.models import Sequential
 from keras.layers import Dense
-from keras.layers import Dropout
-def training(q, X_train, Y_train,X_valid,Y_valid, X_test):
-    model = Sequential()
-    model.add(Dense(256, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(128, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(61, activation='softmax'))
-    
-    # 3. 훈련
-    model.compile(loss=lambda y,pred: quantile_loss(q,y,pred),optimizer='adam',metrics=[lambda y, pred: quantile_loss(q, y, pred)])
-    model.fit(X_train,Y_train, epochs=5,validation_data=(X_valid, Y_valid))
-    pred = pd.Series(np.ravel(model.predict(X_test), order='C'))
-    return pred, model
+from keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras.layers import LSTM
 
-quantiles = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+model = Sequential()
+model.add(LSTM(32, 
+               activation='relu', 
+               return_sequences=False)
+          )
+model.add(Dense(100))
+model.add(Dense(50))
+model.add(Dense(50))
 
-def train_data(X_train, Y_train, X_valid, Y_valid, X_test):
-    
-    train_models=[]
-    train_actual_pred = pd.DataFrame()
+model.compile(loss='mean_squared_error', optimizer='adam')
+early_stop = EarlyStopping(monitor='val_loss', patience=5)
 
-    for q in quantiles:
-        print(q)
-        pred , model = training(q, X_train, Y_train, X_valid, Y_valid, X_test)
-        train_models.append(model)
-        train_actual_pred = pd.concat([train_actual_pred,pred],axis=1)
+history = model.fit(x_train, y_train, 
+                    epochs=10, 
+                    batch_size=64,
+                    validation_data=(x_valid, y_valid), 
+                    )
 
-    train_actual_pred.columns=quantiles
-    
-    return train_models, train_actual_pred
+# 예측
+pred = model.predict(test_feature)
 
-models_1, results_1 = train_data(x_train_1, y_train_1, x_valid_1, y_valid_1, X_test)
-models_2, results_2 = train_data(x_train_2, y_train_2, x_valid_2, y_valid_2, X_test)
-
-submission.loc[submission.id.str.contains("Day7"), "q_0.1":] = results_1.sort_index().values
-submission.loc[submission.id.str.contains("Day8"), "q_0.1":] = results_2.sort_index().values
-
-submission.to_csv('./data/submission.csv', index=False)
+plt.plot(test_label, label='actual')
+plt.plot(pred, label='prediction')
+plt.legend()
+plt.show()

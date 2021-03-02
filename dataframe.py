@@ -2,10 +2,12 @@ import pyupbit
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
-
+import numpy as np
 result = []
-days=29
-
+days=4
+num=0
+datanum=0
+coindata = pd.DataFrame(result)
 for day in range(days):
     if day ==0:
         continue
@@ -27,7 +29,6 @@ for day in range(days):
             print(url)
             for i,candle in enumerate(data):
                 result.append({
-                'Time' : data[i]["candleDateTimeKst"],
                 'open' : data[i]["openingPrice"],
                 'high' : data[i]["highPrice"],
                 'low' : data[i]["lowPrice"],
@@ -35,7 +36,9 @@ for day in range(days):
                 'tradevol' : data[i]["candleAccTradeVolume"],
                 'traceprice' : data[i]["candleAccTradePrice"]
                 })
-
-            coindata=pd.DataFrame(result)
-            coindata.to_csv(f'{date}-{time}.csv')
+            np.flipud(result)
+            num = num+1
+            coindata= coindata.append(pd.DataFrame(result))
             result=[]
+
+coindata.to_csv(f'data.csv')
