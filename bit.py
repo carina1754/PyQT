@@ -8,7 +8,7 @@ class Worker(QThread):
 
     def run(self):
         # create websocket for Bithumb
-        wm = WebSocketManager("ticker", ["KRW-MOC"])
+        wm = WebSocketManager("ticker", ["KRW-ARK"])
         while True:
             data = wm.get()
             print(data)
@@ -19,28 +19,31 @@ class MyWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        label = QLabel("MOC", self)
+        label = QLabel("ARK", self)
         label.move(20, 20)
-
+        
+        label = QLabel("이율", self)
+        label.move(20, 40)
+        
         self.price = QLabel("", self)
-        self.price.move(80, 20)
+        self.price.move(80, 25)
         self.price.resize(100, 20)
 
-        button = QPushButton("Start", self)
-        button.move(20, 50)
-        button.clicked.connect(self.click_btn)
-
+        self.price2 = QLabel("", self)
+        self.price2.move(80, 45)
+        self.price2.resize(100, 20)
+        
         self.th = Worker()
         self.th.recv.connect(self.receive_msg)
-
+        self.th.start()
+    
     @pyqtSlot(dict)
     def receive_msg(self, data):
         print(data)
         close_price = data.get("trade_price")
+        inner_price = round(close_price/1485*100-100,3)
         self.price.setText(str(close_price))
-
-    def click_btn(self):
-       self.th.start()
+        self.price2.setText(str(inner_price))
 
 
 if __name__ == '__main__':

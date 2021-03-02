@@ -6,8 +6,7 @@ import json
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
- 
- 
+
 async def upbit_ws_client(q):
      uri = "wss://api.upbit.com/websocket/v1"
  
