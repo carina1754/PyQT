@@ -4,14 +4,17 @@ import pandas as pd
 from bs4 import BeautifulSoup
 
 result = []
-days=4
+days=29
 
 for day in range(days):
     if day ==0:
         continue
     for hour in range(24):
-            
-            date="2021-03-0"+str(day)
+        
+            if day < 10:
+                date="2021-03-0"+str(day)
+            else:    
+                date="2021-03-"+str(day)
             
             if hour < 10:
                 time = "0"+str(hour)+":00:00"
