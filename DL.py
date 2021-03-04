@@ -37,14 +37,14 @@ train,test = train_test_split(train, test_size=0.3, random_state=0)
 train_feature = train[['id','open','high','low','tradevol','traceprice']]
 train_label = train[['trade']]
 
-train_feature, train_label = make_dataset(train_feature, train_label, 20)
+train_feature, train_label = make_dataset(train_feature, train_label, 1)
 
 x_train, x_valid, y_train, y_valid = train_test_split(train_feature, train_label, test_size=0.2)
 
 test_feature = test[['id','open','high','low','tradevol','traceprice']]
 test_label = test[['trade']]
 
-test_feature, test_label = make_dataset(test_feature, test_label, 20)
+test_feature, test_label = make_dataset(test_feature, test_label, 1)
 
 print(x_train.shape)
 print(y_train.shape)
